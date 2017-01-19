@@ -1,66 +1,66 @@
 module ClickHouseFormat
 module CSV
 
+
 """
     s1 = CSV.String(\""" " - it is quote \""")
-"""    
+
+    let s::CSV.String = "hello"; s end 
+"""
 immutable String
  v::AbstractString
  String(x::AbstractString) = new(x)
  String(x::Any) = new(string(x))
 end
+Base.convert( ::Type{CSV.String}, s::AbstractString ) = String(s)
 
 
 """ q("hello") """
-q(io::IO, x::AbstractString) = ( write(io, '\'', replace(x, '"', "\"\""), '\''); nothing)
-q(io::IO, x) = ( write(io, '\'', replace( string(x), '"', "\"\""), '\''); nothing)
-q(x) = q(STDOUT,x)
+q(s::AbstractString) = "\'" * replace(s, '"', "\"\"") * "\'"
 
 
 """ qq("hello") """
-qq(io::IO, x::String) = ( write(io, '"', replace(x.v, '"', "\"\""), '"'); nothing)
-qq(io::IO, x) = ( write(io, '"', replace( string(x), '"', "\"\""), '"'); nothing)
-qq(x) = qq(STDOUT,x)
-
+qq(s::AbstractString) = "\"" * replace(s, '"', "\"\"") * "\""
 
 
 """ CSV.String(\""" " - it is quote \""") |> print """
-Base.print( io::IO, s::CSV.String )::Void = qq(io, s.v)
+Base.string( s::CSV.String )::AbstractString = qq(s.v)
 
 
+""" CSV.DateTime(DateTime("2017-01-17")) 
 
-""" CSV.DateTime(DateTime("2017-01-17")) """
+let dt::CSV.DateTime = "2017-01-18T23:59:01"; dt end
+"""
 immutable DateTime
  v::Dates.DateTime
 end
 
-
+Base.convert( ::Type{CSV.DateTime}, s::AbstractString) = DateTime(s)
 
 """ Dates.DateTime("2017-01-17T15:36:42") """
 DateTime(s::AbstractString) = DateTime( Dates.DateTime(s))
-
-
 
 """ CSV.DateTime("2017-01-17T15:36:42")"""
 DateTime(y::Int, m::Int=1, d::Int=1, h::Int=0, mi::Int=0, s::Int=0) = DateTime( Dates.DateTime(y,m,d,h,mi,s))
 
 
 
-""" CSV.unix2datetime(1482891697) """
-unix2datetime( n::Number) = DateTime( Dates.unix2datetime(n))
 
+import Base.Dates: unix2datetime
+export unix2datetime
 
+""" CSV.unix2datetime(1482891697)
 
-""" CSV.unix2datetime("1482891697") """
-unix2datetime( s::AbstractString) = DateTime( Dates.unix2datetime( parse( Int32, s)))
-
+    CSV.unix2datetime("1482891697") 
+"""
+unix2datetime(s::AbstractString) = unix2datetime( parse( Int32, s))
 
 """
     d1 = CSV.DateTime(DateTime("2017-01-17"))
     
     print( d1)
 """
-Base.print( io::IO, dt::DateTime) = qq(io, string(dt.v))
+Base.string( dt::DateTime) = qq(string(dt.v))
 
 
 
@@ -77,6 +77,8 @@ Date( s::AbstractString ) = Date( Dates.Date(s))
 """ CSV.Date(2017,1,17) """
 Date( y::Int, m::Int=1, d::Int=1 ) = Date( Dates.Date(y,m,d))
 
+Base.convert( ::Type{CSV.Date}, s::AbstractString) = Date(s)
+
 
 """ d1 = CSV.Date( Date(2017,1,17))
 
@@ -84,31 +86,16 @@ Date( y::Int, m::Int=1, d::Int=1 ) = Date( Dates.Date(y,m,d))
     
     "\$d1" 
 """
-Base.print( io::IO, d::Date) = qq(io, d.v)
+Base.string( d::Date) = qq(string(d.v))
 
 
-immutable Array
- a::Base.Array
+""" All single CSV - types """
+typealias Scalar Union{Date,DateTime,String}
+
+
+function Base.string{T<:Scalar}( a::AbstractArray{T})
+ "\"[" * join( map( el->q(el.v), a ), ',' ) * "]\""
 end
-
-
-"array elements quoting"
-aq{ T<:Union{Date,DateTime,String} }( io::IO, x::T ) = q( io, x.v)
-aq(io::IO, x) = ( write(io, string(x)); nothing )
-
-function Base.print(io::IO, a::Array)::Void
- write(io, "\"[")
- #join(io, map(_->aq(io,_), a.a), ',')
- for el in a.a[1:(end-1)]
-  aq(io, el)
-  write(io,',')
- end
- aq(io,a.a[end]) 
- write(io, "]\"")
- nothing
-end
-
-Base.size(a::Array) = size(a.a)
 
 
 end # module CSV
