@@ -8,23 +8,16 @@ module CSV
     let s::CSV.String = "hello"; s end 
 """
 immutable String
- v::AbstractString
- String(x::AbstractString) = new(x)
- String(x::Any) = new(string(x))
+ v::Base.String
+ String(x::Base.String) = new(x)
+ String(x::Any) = new(Base.String(x))
 end
 Base.convert( ::Type{CSV.String}, s::AbstractString ) = String(s)
 
 
-""" q("hello") """
-q(s::AbstractString) = "\'" * replace(s, '"', "\"\"") * "\'"
-
-
-""" qq("hello") """
-qq(s::AbstractString) = "\"" * replace(s, '"', "\"\"") * "\""
-
 
 """ CSV.String(\""" " - it is quote \""") |> print """
-Base.string( s::CSV.String )::AbstractString = qq(s.v)
+Base.show(io::IO, s::CSV.String ) = write(io, '"', qqx2(s.v), '"')
 
 
 """ CSV.DateTime(DateTime("2017-01-17")) 
@@ -44,8 +37,6 @@ DateTime(s::AbstractString) = DateTime( Dates.DateTime(s))
 DateTime(y::Int, m::Int=1, d::Int=1, h::Int=0, mi::Int=0, s::Int=0) = DateTime( Dates.DateTime(y,m,d,h,mi,s))
 
 
-
-
 import Base.Dates: unix2datetime
 export unix2datetime
 
@@ -60,7 +51,7 @@ unix2datetime(s::AbstractString) = unix2datetime( parse( Int32, s))
     
     print( d1)
 """
-Base.string( dt::DateTime) = qq(string(dt.v))
+Base.show(io::IO, dt::DateTime) = write(io, '"', string(dt.v), '"')
 
 
 
@@ -86,17 +77,26 @@ Base.convert( ::Type{CSV.Date}, s::AbstractString) = Date(s)
     
     "\$d1" 
 """
-Base.string( d::Date) = qq(string(d.v))
+Base.show(io::IO, d::Date) = write(io, '"', string(d.v), '"')
 
 
 """ All single CSV - types """
 typealias Scalar Union{Date,DateTime,String}
 
 
-function Base.string{T<:Scalar}( a::AbstractArray{T})
- "\"[" * join( map( el->q(el.v), a ), ',' ) * "]\""
+function Base.show{T<:Scalar}(io::IO, a::AbstractArray{T})
+ write(io, '"', '[')
+ l = length(a)
+ if l>1
+    for el in a[1:(l-1)]
+	write(io, '\'', qqx2( string(el.v)) , '\'', ',' )
+    end
+ end
+ l>0 && write(io, '\'', qqx2( string(a[l].v)), '\'')
+ write(io, ']', '"')
 end
 
+qqx2(s::AbstractString)::AbstractString = replace( s, "\"", "\"\"")
 
 end # module CSV
 
