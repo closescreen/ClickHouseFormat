@@ -20,9 +20,9 @@ Base.convert( ::Type{CSV.String}, s::AbstractString ) = String(s)
 Base.show(io::IO, s::CSV.String ) = write(io, '"', qqx2(s.v), '"')
 
 
-""" CSV.DateTime(DateTime("2017-01-17")) 
+""" CSV.DateTime(DateTime(\"2017-01-17\")) 
 
-let dt::CSV.DateTime = "2017-01-18T23:59:01"; dt end
+let dt::CSV.DateTime = \"2017-01-18T23:59:01\"; dt end
 """
 immutable DateTime
  v::Dates.DateTime
@@ -30,10 +30,10 @@ end
 
 Base.convert( ::Type{CSV.DateTime}, s::AbstractString) = DateTime(s)
 
-""" Dates.DateTime("2017-01-17T15:36:42") """
+""" Dates.DateTime(\"2017-01-17T15:36:42\") """
 DateTime(s::AbstractString) = DateTime( Dates.DateTime(s))
 
-""" CSV.DateTime("2017-01-17T15:36:42")"""
+""" CSV.DateTime(\"2017-01-17T15:36:42\")"""
 DateTime(y::Int, m::Int=1, d::Int=1, h::Int=0, mi::Int=0, s::Int=0) = DateTime( Dates.DateTime(y,m,d,h,mi,s))
 
 
@@ -42,12 +42,12 @@ export unix2datetime
 
 """ CSV.unix2datetime(1482891697)
 
-    CSV.unix2datetime("1482891697") 
+    CSV.unix2datetime(\"1482891697\") 
 """
 unix2datetime(s::AbstractString) = unix2datetime( parse( Int32, s))
 
 """
-    d1 = CSV.DateTime(DateTime("2017-01-17"))
+    d1 = CSV.DateTime(DateTime(\"2017-01-17\"))
     
     print( d1)
 """
@@ -61,7 +61,7 @@ immutable Date
 end
 
 
-""" CSV.Date( "2017-1-17") """
+""" CSV.Date( \"2017-1-17\") """
 Date( s::AbstractString ) = Date( Dates.Date(s))
 
 
@@ -84,6 +84,10 @@ Base.show(io::IO, d::Date) = write(io, '"', string(d.v), '"')
 typealias Scalar Union{Date,DateTime,String}
 
 
+"""
+a1 = [ CSV.String(\"123=kuku\"), CSV.String(\"345=ksks\") ]
+\"\$a1\"
+"""
 function Base.show{T<:Scalar}(io::IO, a::AbstractArray{T})
  write(io, '"', '[')
  l = length(a)
