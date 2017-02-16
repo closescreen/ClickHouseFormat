@@ -5,7 +5,7 @@ module CSV
 """
     s1 = CSV.String(\""" " - it is quote \""")
 
-    let s::CSV.String = "hello"; s end 
+    let s::CSV.String = \"hello\"; s end 
 """
 immutable String
  v::Base.String
@@ -17,7 +17,7 @@ Base.convert( ::Type{CSV.String}, s::AbstractString ) = String(s)
 
 
 """ CSV.String(\""" " - it is quote \""") |> print """
-Base.show(io::IO, s::CSV.String ) = write(io, '"', qqx2(s.v), '"')
+Base.show(io::IO, s::CSV.String ) = write(io, '"', str_esc(s.v), '"')
 
 
 """ CSV.DateTime(DateTime(\"2017-01-17\")) 
@@ -93,15 +93,16 @@ function Base.show{T<:Scalar}(io::IO, a::AbstractArray{T})
  l = length(a)
  if l>1
     for el in a[1:(l-1)]
-	write(io, '\'', qqx2( string(el.v)) , '\'', ',' )
+	write(io, '\'', str_esc( string(el.v)) , '\'', ',' )
     end
  end
- l>0 && write(io, '\'', qqx2( string(a[l].v)), '\'')
+ l>0 && write(io, '\'', str_esc( string(a[l].v)), '\'')
  write(io, ']', '"')
 end
 
-qqx2(s::AbstractString)::AbstractString = replace( s, "\"", "\"\"")
-
+#str_esc(s::AbstractString)::AbstractString = replace( s, "\"", "\"\"")
+esc_rule(s::AbstractString) = s=="\"" ? "\"\"" : "\\"*s
+str_esc(s::AbstractString) = replace( s, r"\"|\\|\'", esc_rule)
 end # module CSV
 
 # -- Any other formats before finish ? --
